@@ -1,0 +1,3 @@
+Flask
+pyotp
+flask-cors
