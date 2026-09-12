@@ -3,9 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>OTPforge — Modern 2FA Authenticator</title>
-<meta name="description" content="OTPforge — a modern, private, Google Authenticator-style TOTP authenticator. Codes are generated locally in your browser.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23e8a33d'/%3E%3Ccircle cx='32' cy='26' r='10' fill='%23171310'/%3E%3Crect x='28' y='30' width='8' height='18' fill='%23171310'/%3E%3C/svg%3E">
+<title>OTPforge — Free Online 2FA Authenticator (TOTP &amp; HOTP)</title>
+<meta name="description" content="OTPforge is a free, private two-factor authentication app that runs entirely in your browser. Generate TOTP and HOTP codes, scan QR codes, import from Google Authenticator, and export backups. No account, no cloud.">
+<meta name="keywords" content="2fa authenticator, totp, hotp, two-factor authentication, google authenticator alternative, authenticator app online, otp generator, rfc 6238, qr code 2fa">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Mazidul Islam Mahim">
+<link rel="canonical" href="https://mahimmazidul.github.io/OTPforge/">
+<link rel="manifest" href="static/site.webmanifest">
+<meta name="theme-color" content="#131110">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OTPforge">
+<link rel="icon" type="image/svg+xml" href="static/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="static/icon-192.png">
+<link rel="apple-touch-icon" href="static/apple-touch-icon.png">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OTPforge">
+<meta property="og:title" content="OTPforge — Free Online 2FA Authenticator">
+<meta property="og:description" content="Generate TOTP and HOTP codes entirely in your browser. Scan QR codes, import from Google Authenticator, export backups. No account, no cloud.">
+<meta property="og:url" content="https://mahimmazidul.github.io/OTPforge/">
+<meta property="og:image" content="https://mahimmazidul.github.io/OTPforge/static/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="OTPforge — the free, private 2FA authenticator that runs entirely in your browser">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OTPforge — Free Online 2FA Authenticator">
+<meta name="twitter:description" content="TOTP and HOTP codes, QR scanning and Google Authenticator import — entirely in your browser. No account, no cloud.">
+<meta name="twitter:image" content="https://mahimmazidul.github.io/OTPforge/static/og-image.png">
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "OTPforge",
+  "url": "https://mahimmazidul.github.io/OTPforge/",
+  "image": "https://mahimmazidul.github.io/OTPforge/static/og-image.png",
+  "applicationCategory": "SecurityApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "description": "Free, private two-factor authentication (2FA) authenticator that generates TOTP and HOTP codes entirely in your browser.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "featureList": [
+    "TOTP time-based codes (RFC 6238)",
+    "HOTP counter-based codes (RFC 4226)",
+    "SHA-1, SHA-256 and SHA-512 algorithms",
+    "QR code scanning and otpauth:// import",
+    "Import from Google Authenticator",
+    "Steam Guard codes",
+    "Encrypted-free local storage, JSON backup export"
+  ],
+  "author": { "@type": "Person", "name": "Mazidul Islam Mahim", "url": "https://github.com/mahimmazidul" },
+  "license": "https://opensource.org/licenses/MIT"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is OTPforge?",
+      "acceptedAnswer": { "@type": "Answer", "text": "OTPforge is a free two-factor authentication (2FA) authenticator web app. It generates the same time-based codes (TOTP) as Google Authenticator, entirely in your browser." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does OTPforge work offline?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Codes are computed locally on your device with Web Crypto, so OTPforge keeps working without an internet connection." }
+    },
+    {
+      "@type": "Question",
+      "name": "Where are my secret keys stored?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Only in your browser's local storage. They are never uploaded to any server, and you can export a JSON backup at any time." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I import accounts from Google Authenticator?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Use Google Authenticator's Transfer accounts export, then scan or paste the migration QR into OTPforge and every account is imported." }
+    }
+  ]
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -17,10 +103,10 @@
 <header class="topbar">
   <div class="brand">
     <span class="logo" aria-hidden="true">
-      <svg viewBox="0 0 64 64" width="20" height="20"><circle cx="32" cy="25" r="11" fill="none" stroke="currentColor" stroke-width="7"/><rect x="28.5" y="32" width="7" height="20" rx="1" fill="currentColor"/></svg>
+      <svg viewBox="0 0 512 512" width="22" height="22"><path d="M256 64 L422 160 v192 L256 448 90 352 V160 Z" fill="#e8a33d" stroke="#e8a33d" stroke-width="34" stroke-linejoin="round"/><circle cx="256" cy="218" r="54" fill="#171310"/><path d="M234 250 h44 l17 132 h-78 z" fill="#171310"/></svg>
     </span>
     <div class="brand-text">
-      <span class="brand-name">OTPFORGE</span>
+      <h1 class="brand-name">OTPFORGE</h1>
       <span class="brand-sub">RFC 6238 · TOTP / HOTP</span>
     </div>
   </div>
@@ -237,13 +323,20 @@
       </button>
     </div>
     <div class="about-body">
-      <p><strong>OTPforge v2.0</strong> — a modern, private two-factor authenticator.</p>
+      <p><strong>OTPforge</strong> — a free, private two-factor authenticator.</p>
       <ul>
         <li>TOTP &amp; HOTP · SHA-1 / SHA-256 / SHA-512 · 6–8 digits · Steam Guard</li>
         <li>QR scan, <code>otpauth://</code> import &amp; manual entry</li>
         <li>Everything is stored locally in your browser — no account, no cloud.</li>
         <li>Compatible with Google Authenticator, Authy, Aegis &amp; any RFC-6238 service.</li>
       </ul>
+      <div class="faq">
+        <h3>Questions &amp; answers</h3>
+        <details><summary>What is OTPforge?</summary><p>OTPforge is a free two-factor authentication (2FA) authenticator web app. It generates the same time-based codes (TOTP) as Google Authenticator, entirely in your browser.</p></details>
+        <details><summary>Does OTPforge work offline?</summary><p>Yes. Codes are computed locally on your device with Web Crypto, so OTPforge keeps working without an internet connection.</p></details>
+        <details><summary>Where are my secret keys stored?</summary><p>Only in your browser's local storage. They are never uploaded to any server, and you can export a JSON backup at any time.</p></details>
+        <details><summary>Can I import accounts from Google Authenticator?</summary><p>Yes. Use Google Authenticator's <em>Transfer accounts</em> export, then scan or paste the migration QR into OTPforge and every account is imported.</p></details>
+      </div>
       <p class="hint">Tip: use <em>Menu → Export backup</em> regularly to keep your accounts safe.</p>
     </div>
   </div>
@@ -259,6 +352,7 @@
 
 <script src="static/vendor/jsQR.js"></script>
 <script src="static/vendor/qrcode.js"></script>
+<script src="static/brand-icons.js"></script>
 <script src="static/app.js"></script>
 </body>
 </html>

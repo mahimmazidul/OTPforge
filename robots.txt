@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mahimmazidul.github.io/OTPforge/sitemap.xml

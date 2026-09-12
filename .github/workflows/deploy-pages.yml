@@ -30,7 +30,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir _site
-          cp index.html _site/
+          cp index.html robots.txt sitemap.xml _site/
           cp -r static _site/
 
       - name: Upload site

@@ -277,13 +277,44 @@ function addAccount(acc) {
   return true;
 }
 
-const AVATAR_HUES = {};
 function avatarStyle(acc) {
   const name = (acc.issuer || acc.account || '').toLowerCase();
   if (!name) return '--hue:40';
   let h = 0;
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
   return `--hue:${h}`;
+}
+
+/* -------- brand icons (paths in static/brand-icons.js) -------- */
+const BRAND_ALIASES = {
+  'gmail': 'google', 'google workspace': 'google', 'youtube': 'google',
+  'aws': 'amazon', 'amazon web services': 'amazon', 'prime video': 'amazon',
+  'twitter': 'x', 'meta': 'facebook', 'messenger': 'facebook',
+  'outlook': 'microsoft', 'hotmail': 'microsoft', 'live': 'microsoft',
+  'office 365': 'microsoft', 'microsoft 365': 'microsoft', 'azure': 'microsoft',
+  'xbox': 'microsoft', 'icloud': 'apple', 'apple id': 'apple',
+  'digital ocean': 'digitalocean', 'aws lightsail': 'amazon',
+  'aws console': 'amazon', 'openai chatgpt': 'openai', 'chatgpt': 'openai',
+};
+function brandSlug(acc) {
+  const issuer = (acc.issuer || '').toLowerCase().trim();
+  const key = BRAND_ALIASES[issuer] || issuer.replace(/\s+/g, '');
+  const icons = window.BRAND_ICONS || {};
+  if (icons[key]) return key;
+  const hay = `${acc.issuer || ''} ${acc.account || ''}`.toLowerCase();
+  for (const slug of Object.keys(icons)) {
+    if (slug.length >= 3 && hay.includes(slug)) return slug;
+  }
+  return null;
+}
+function setAvatar(acc, avatar) {
+  const icons = window.BRAND_ICONS || {};
+  const slug = acc.steam ? 'steam' : brandSlug(acc);
+  if (slug && icons[slug]) {
+    avatar.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[slug]}" fill="currentColor"/></svg>`;
+  } else {
+    avatar.textContent = (acc.issuer || acc.account || '?').trim().charAt(0) || '?';
+  }
 }
 
 /* =========================================================
@@ -303,7 +334,7 @@ function buildCard(acc) {
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
   avatar.style.cssText = avatarStyle(acc);
-  avatar.textContent = (acc.issuer || acc.account || '?').trim().charAt(0) || '?';
+  setAvatar(acc, avatar);
 
   const meta = document.createElement('div');
   meta.className = 'meta';
@@ -313,12 +344,12 @@ function buildCard(acc) {
   if (acc.type === 'hotp') {
     const tag = document.createElement('span');
     tag.className = 'tag';
-    tag.textContent = 'hotp';
+    tag.textContent = 'HOTP';
     issuerEl.appendChild(tag);
   } else if (acc.steam) {
     const tag = document.createElement('span');
     tag.className = 'tag';
-    tag.textContent = 'steam';
+    tag.textContent = 'Steam';
     issuerEl.appendChild(tag);
   }
   const accountEl = document.createElement('div');
@@ -751,6 +782,33 @@ $('#parseUriBtn').addEventListener('click', () => {
 });
 
 /* =========================================================
+   QR decoding (jsQR), hardened for full screenshots.
+   A single-pass decode often fails on large screenshots or
+   photos where the QR is small, so we retry at several
+   scales (including upscaling) and with inverted-color
+   attempts until something reads.
+   ========================================================= */
+function findQRInCanvas(src) {
+  const w0 = src.width, h0 = src.height;
+  const widths = [];
+  for (const f of [1, 1.6, 2.4, 0.7, 0.45, 0.3]) {
+    const w = Math.round(Math.min(Math.max(w0 * f, 160), 2400));
+    if (!widths.includes(w)) widths.push(w);
+  }
+  const work = document.createElement('canvas');
+  const wctx = work.getContext('2d', { willReadFrequently: true });
+  for (const w of widths) {
+    const h = Math.max(1, Math.round(h0 * (w / w0)));
+    work.width = w; work.height = h;
+    wctx.drawImage(src, 0, 0, w, h);
+    const img = wctx.getImageData(0, 0, w, h);
+    const res = jsQR(img.data, w, h, { inversionAttempts: 'attemptBoth' }); // eslint-disable-line no-undef
+    if (res && res.data) return res;
+  }
+  return null;
+}
+
+/* =========================================================
    Camera scanning (jsQR)
    ========================================================= */
 const scanVideo = $('#scanVideo');
@@ -780,15 +838,20 @@ async function startCamera() {
   setScanUI(true);
 
   const ctx = scanCanvas.getContext('2d', { willReadFrequently: true });
+  let frame = 0;
   const loop = () => {
     if (!scanStream) return;
     if (scanVideo.readyState === scanVideo.HAVE_ENOUGH_DATA) {
-      const scale = Math.min(1, 720 / (scanVideo.videoWidth || 720));
+      frame++;
+      // alternate a cheap pass and a sharper upscaled pass for far-away codes
+      const target = Math.min(1600, frame % 12 === 0 ? 1300 : 750);
+      const w = Math.min(target, Math.max(320, Math.round(scanVideo.videoWidth * (frame % 12 === 0 ? 1.6 : 1))));
+      const scale = Math.min(2, w / (scanVideo.videoWidth || w));
       scanCanvas.width = Math.round(scanVideo.videoWidth * scale);
       scanCanvas.height = Math.round(scanVideo.videoHeight * scale);
       ctx.drawImage(scanVideo, 0, 0, scanCanvas.width, scanCanvas.height);
       const img = ctx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
-      const res = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' }); // eslint-disable-line no-undef
+      const res = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' }); // eslint-disable-line no-undef
       if (res && res.data) { handleScanned(res.data); return; }
     }
     scanRaf = requestAnimationFrame(loop);
@@ -826,9 +889,8 @@ $('#qrFileInput').addEventListener('change', async (e) => {
     const c = document.createElement('canvas');
     c.width = bmp.width; c.height = bmp.height;
     c.getContext('2d').drawImage(bmp, 0, 0);
-    const img = c.getContext('2d').getImageData(0, 0, c.width, c.height);
-    const res = jsQR(img.data, img.width, img.height); // eslint-disable-line no-undef
-    if (res?.data) handleScanned(res.data);
+    const res = findQRInCanvas(c);
+    if (res && res.data) handleScanned(res.data);
     else toast('No QR code found in that image', true);
   } catch {
     toast('Could not read that image', true);
