@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>OTPforge — Modern 2FA Authenticator</title>
 <meta name="description" content="OTPforge — a modern, private, Google Authenticator-style TOTP authenticator. Codes are generated locally in your browser.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f8cff'/%3E%3Ccircle cx='32' cy='30' r='12' fill='none' stroke='white' stroke-width='5'/%3E%3Crect x='29' y='40' width='6' height='14' rx='3' fill='white'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23e8a33d'/%3E%3Ccircle cx='32' cy='26' r='10' fill='%23171310'/%3E%3Crect x='28' y='30' width='8' height='18' fill='%23171310'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
@@ -14,20 +17,22 @@
 <header class="topbar">
   <div class="brand">
     <span class="logo" aria-hidden="true">
-      <svg viewBox="0 0 64 64" width="26" height="26"><circle cx="32" cy="28" r="12" fill="none" stroke="currentColor" stroke-width="6"/><rect x="29" y="38" width="6" height="16" rx="3" fill="currentColor"/></svg>
+      <svg viewBox="0 0 64 64" width="20" height="20"><circle cx="32" cy="25" r="11" fill="none" stroke="currentColor" stroke-width="7"/><rect x="28.5" y="32" width="7" height="20" rx="1" fill="currentColor"/></svg>
     </span>
-    <h1>OTPforge</h1>
-    <span class="badge" id="countBadge" hidden>0</span>
+    <div class="brand-text">
+      <span class="brand-name">OTPFORGE</span>
+      <span class="brand-sub">RFC 6238 · TOTP / HOTP</span>
+    </div>
   </div>
 
   <div class="search-wrap">
-    <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.49 4.49 0 0 1 9.5 14z"/></svg>
-    <input id="searchInput" type="search" placeholder="Search accounts…  ( / )" autocomplete="off" spellcheck="false">
+    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.49 4.49 0 0 1 9.5 14z"/></svg>
+    <input id="searchInput" type="search" placeholder="search accounts…" autocomplete="off" spellcheck="false">
   </div>
 
   <div class="topbar-actions">
     <button class="btn btn-accent" id="addBtn">
-      <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+      <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
       <span>Add</span>
     </button>
     <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme"></button>
@@ -39,27 +44,33 @@
 
 <!-- ============ Account list ============ -->
 <main>
+  <div class="list-head" id="listHead" hidden>
+    <span>Accounts / <b id="countNum">00</b></span>
+    <span class="clock mono" id="utcClock">--:--:-- UTC</span>
+  </div>
   <div id="accountList" class="list" aria-live="polite"></div>
 
   <!-- Empty state -->
   <div id="emptyState" class="empty" hidden>
     <div class="empty-art" aria-hidden="true">
-      <svg viewBox="0 0 120 120" width="110" height="110">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="3" opacity=".25"/>
-        <circle cx="60" cy="52" r="20" fill="none" stroke="currentColor" stroke-width="6"/>
-        <rect x="56" y="68" width="8" height="26" rx="4" fill="currentColor"/>
-        <circle cx="60" cy="52" r="5" fill="currentColor"/>
+      <svg viewBox="0 0 120 120" width="104" height="104" fill="none" stroke="currentColor">
+        <circle cx="60" cy="44" r="20" stroke-width="4"/>
+        <circle cx="60" cy="44" r="5" fill="currentColor" stroke="none"/>
+        <rect x="56" y="64" width="8" height="30" rx="1" fill="currentColor" stroke="none"/>
+        <rect x="62" y="80" width="10" height="4" fill="currentColor" stroke="none"/>
+        <path d="M14 106h92" stroke-width="2" opacity=".35"/>
+        <path d="M24 112h72" stroke-width="2" opacity=".18"/>
       </svg>
     </div>
-    <h2>No accounts yet</h2>
-    <p>Add your first 2FA account — scan a QR code, paste an <code>otpauth://</code> link,<br>or enter the secret key manually. Works with Google, GitHub, Facebook, Discord &amp; more.</p>
+    <h2>No accounts on file</h2>
+    <p>Add your first 2FA account — scan the QR code a service shows you when you enable two-factor authentication, paste its <code>otpauth://</code> link, or type the secret key by hand.</p>
     <div class="empty-actions">
       <button class="btn btn-accent" id="emptyAddBtn">+ Add account</button>
-      <button class="btn btn-ghost" id="demoBtn">Try a demo account</button>
+      <button class="btn btn-ghost" id="demoBtn">Load demo account</button>
     </div>
   </div>
 
-  <p class="privacy-note">Codes are generated locally in your browser — secrets never leave this device.</p>
+  <p class="privacy-note">All codes computed locally — secrets never leave this device</p>
 </main>
 
 <!-- ============ Add / Edit account modal ============ -->
@@ -87,7 +98,7 @@
           <svg viewBox="0 0 24 24" width="42" height="42"><path fill="currentColor" d="M4 4h6v6H4zM6 6v2h2V6zm8-2h6v6h-6zm2 2v2h2V6zM4 14h6v6H4zm2 2v2h2v-2zm12-2h2v2h-2zm-4 0h2v2h-2zm0 4h2v2h-2zm4 0h2v2h-2zm-8 2h2v2H8z"/></svg>
           <p>Point your camera at a QR code,<br>or start the camera below.</p>
         </div>
-        <div class="scan-frame" id="scanFrame" hidden></div>
+        <div class="scan-frame" id="scanFrame" hidden><i></i><i></i><i></i><i></i></div>
       </div>
       <div class="scan-controls">
         <button class="btn btn-accent" id="startCamBtn">Start camera</button>

@@ -8,7 +8,7 @@
 /* ---------------- tiny DOM helpers ---------------- */
 const $  = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
-const RING_C = 2 * Math.PI * 18; // circumference of the countdown ring
+
 
 /* ---------------- state ---------------- */
 const STORE_KEY = 'otpforge.accounts.v2';
@@ -279,14 +279,11 @@ function addAccount(acc) {
 
 const AVATAR_HUES = {};
 function avatarStyle(acc) {
-  const name = (acc.issuer || acc.account || '?').toLowerCase();
-  let hue = 210;
-  if (name !== '?') {
-    let h = 0;
-    for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
-    hue = h;
-  }
-  return `background: linear-gradient(135deg, hsl(${hue},72%,52%), hsl(${(hue + 45) % 360},70%,42%))`;
+  const name = (acc.issuer || acc.account || '').toLowerCase();
+  if (!name) return '--hue:40';
+  let h = 0;
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `--hue:${h}`;
 }
 
 /* =========================================================
@@ -294,21 +291,8 @@ function avatarStyle(acc) {
    ========================================================= */
 const listEl = $('#accountList');
 const emptyState = $('#emptyState');
-const countBadge = $('#countBadge');
+const listHead = $('#listHead');
 const searchInput = $('#searchInput');
-
-function ringSvg() {
-  const wrap = document.createElement('div');
-  wrap.className = 'ring-wrap';
-  wrap.innerHTML = `
-    <svg width="44" height="44" viewBox="0 0 44 44">
-      <circle class="ring-bg" cx="22" cy="22" r="18" fill="none" stroke-width="3.5"/>
-      <circle class="ring-fg" cx="22" cy="22" r="18" fill="none" stroke-width="3.5"
-        stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/>
-    </svg>
-    <div class="ring-num">30</div>`;
-  return wrap;
-}
 
 function buildCard(acc) {
   const card = document.createElement('div');
@@ -357,18 +341,29 @@ function buildCard(acc) {
 
   const side = document.createElement('div');
   side.className = 'side';
-  let ring = null;
+  let timeWrap = null, timebar = null;
   if (acc.type === 'totp') {
-    ring = ringSvg();
-    side.appendChild(ring);
+    timeWrap = document.createElement('div');
+    timeWrap.className = 'time';
+    timeWrap.innerHTML = '<span class="secs">30s</span>';
+    side.appendChild(timeWrap);
+    timebar = document.createElement('div');
+    timebar.className = 'timebar';
+    timebar.innerHTML = '<i></i>';
+    card.appendChild(timebar);
   } else {
+    const hotpChip = document.createElement('span');
+    hotpChip.className = 'hotp-count mono';
+    hotpChip.textContent = '#' + acc.counter;
+    side.appendChild(hotpChip);
     const hotpBtn = document.createElement('button');
     hotpBtn.className = 'hotp-btn';
     hotpBtn.type = 'button';
     hotpBtn.title = 'Generate next code';
-    hotpBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35z"/></svg>';
+    hotpBtn.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35z"/></svg>';
     hotpBtn.addEventListener('click', () => {
       acc.counter += 1;
+      hotpChip.textContent = '#' + acc.counter;
       saveAccounts();
       tick();
       toast(`Counter → ${acc.counter}`);
@@ -388,9 +383,9 @@ function buildCard(acc) {
 
   cardRefs.set(acc.id, {
     code: codeBtn,
-    ringWrap: ring,
-    ringFg: ring ? $('.ring-fg', ring) : null,
-    ringNum: ring ? $('.ring-num', ring) : null,
+    timebar,
+    barFg: timebar ? $('i', timebar) : null,
+    secs: timeWrap ? $('.secs', timeWrap) : null,
   });
   return card;
 }
@@ -415,8 +410,8 @@ function renderList() {
     noRes.hidden = !(accounts.length > 0 && visible === 0);
     noRes.textContent = `No accounts match “${searchInput.value.trim()}”`;
   }
-  countBadge.hidden = accounts.length === 0;
-  countBadge.textContent = accounts.length;
+  listHead.hidden = accounts.length === 0;
+  $('#countNum').textContent = String(accounts.length).padStart(2, '0');
   tick();
 }
 
@@ -435,13 +430,22 @@ async function tick() {
       void ref.code.offsetWidth; // restart animation
       ref.code.classList.add('flash');
     }
-    if (acc.type === 'totp' && ref.ringFg) {
+    if (acc.type === 'totp' && ref.barFg) {
       const rem = acc.period - ((now / 1000) % acc.period);
-      ref.ringFg.style.strokeDashoffset = (RING_C * (1 - rem / acc.period)).toFixed(2);
-      ref.ringNum.textContent = Math.ceil(rem);
-      ref.ringWrap.classList.toggle('warn', rem <= 10 && rem > 5);
-      ref.ringWrap.classList.toggle('danger', rem <= 5);
+      ref.barFg.style.transform = `scaleX(${(rem / acc.period).toFixed(4)})`;
+      ref.secs.textContent = Math.ceil(rem) + 's';
+      const warn = rem <= 10 && rem > 5, danger = rem <= 5;
+      ref.timebar.classList.toggle('warn', warn);
+      ref.timebar.classList.toggle('danger', danger);
+      ref.secs.classList.toggle('warn', warn);
+      ref.secs.classList.toggle('danger', danger);
     }
+  }
+  const clock = $('#utcClock');
+  if (clock) {
+    const d = new Date(now);
+    const p = (n) => String(n).padStart(2, '0');
+    clock.textContent = `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
   }
 }
 setInterval(tick, 250);
