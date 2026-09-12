@@ -26,7 +26,7 @@ function otsuBinarize(img) {
 }
 function findQRInCanvas(src) {
   qrDebug = [];
-  const w0 = src.width, h0 = src.height;
+  const w0 = src.naturalWidth || src.width, h0 = src.naturalHeight || src.height;
   const widths = [];
   for (const f of [1, 1.6, 2.4, 3.2, 0.7, 0.45, 0.3]) {
     const w = Math.round(Math.min(Math.max(w0 * f, 160), 2600));
@@ -69,6 +69,25 @@ function findQRInCanvas(src) {
     const r = pass(w, 0, true);
     if (r) return r;
   }
+  if (qrDebug.every(d => d.endsWith("lum0"))) {
+    const alt = document.createElement("canvas");
+    const actx = alt.getContext("2d");
+    for (const w of [widths[0], widths[1]].filter(Boolean)) {
+      const h = Math.max(1, Math.round(h0 * (w / w0)));
+      alt.width = w; alt.height = h;
+      actx.drawImage(src, 0, 0, w, h);
+      const im = actx.getImageData(0, 0, w, h);
+      let s = 0, n = 0;
+      for (let i = 0; i < im.data.length; i += 400) { s += im.data[i]; n++; }
+      qrDebug.push("alt" + w + "x" + h + ":" + (n ? Math.round(s / n) : 0));
+      const r = jsQR(im.data, w, h, { inversionAttempts: "attemptBoth" });
+      if (r && r.data) return r;
+      const rb = otsuBinarize(im);
+      const r2 = jsQR(rb.data, w, h, { inversionAttempts: "attemptBoth" });
+      qrDebug.push("altb" + w + ":" + (r2 ? "HIT" : "null"));
+      if (r2 && r2.data) return r2;
+    }
+  }
   return null;
 }const scanVideo=$("#scanVideo");const scanCanvas=$("#scanCanvas");let scanStream=null,scanRaf=0;function setScanUI(active){$("#scanPlaceholder").hidden=active;$("#scanFrame").hidden=!active;$("#startCamBtn").textContent=active?"Stop camera":"Start camera";if(active)setScanStatus("Scanning\u2026 align the QR code inside the frame.",false)}async function startCamera(){if(scanStream){stopCamera();return}if(!navigator.mediaDevices?.getUserMedia){return toast("Camera is not available in this browser (HTTPS required)",true)}try{scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false})}catch(e){return toast("Could not open camera: "+e.name,true)}scanVideo.srcObject=scanStream;await scanVideo.play().catch(()=>{});setScanUI(true);const ctx=scanCanvas.getContext("2d",{willReadFrequently:true});let frame=0;const loop=()=>{if(!scanStream)return;if(scanVideo.readyState===scanVideo.HAVE_ENOUGH_DATA){frame++;const target=Math.min(1600,frame%12===0?1300:750);const w=Math.min(target,Math.max(320,Math.round(scanVideo.videoWidth*(frame%12===0?1.6:1))));const scale=Math.min(2,w/(scanVideo.videoWidth||w));scanCanvas.width=Math.round(scanVideo.videoWidth*scale);scanCanvas.height=Math.round(scanVideo.videoHeight*scale);ctx.drawImage(scanVideo,0,0,scanCanvas.width,scanCanvas.height);const img=ctx.getImageData(0,0,scanCanvas.width,scanCanvas.height);const res=jsQR(img.data,img.width,img.height,{inversionAttempts:"attemptBoth"});if(res&&res.data){handleScanned(res.data);return}}scanRaf=requestAnimationFrame(loop)};loop()}function stopCamera(){cancelAnimationFrame(scanRaf);if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}scanVideo.srcObject=null;setScanUI(false)}function setScanStatus(msg,isError){const el=$("#scanHint");el.textContent=msg;el.classList.toggle("error-hint",Boolean(isError))}function handleScanned(data){stopCamera();const res=importUriText(data,"QR code");if(res instanceof Error){setScanStatus("QR found, but: "+res.message+" Try the setup QR from the service, or paste the link instead.",true);toast("QR found, but it is not a valid account link",true)}else{setScanStatus("Point your camera at a QR code, or start the camera below.",false)}}$("#startCamBtn").addEventListener("click",startCamera);$("#uploadQrBtn").addEventListener("click",()=>$("#qrFileInput").click());$("#qrFileInput").addEventListener("change", e => {
   const input = e.target;
@@ -80,11 +99,7 @@ function findQRInCanvas(src) {
     const img = new Image();
     img.onload = () => {
       try {
-        const c = document.createElement("canvas");
-        c.width = img.naturalWidth || img.width;
-        c.height = img.naturalHeight || img.height;
-        c.getContext("2d").drawImage(img, 0, 0);
-        const res = findQRInCanvas(c);
+        const res = findQRInCanvas(img);
         if (res && res.data) {
           $("#copyDebugBtn").hidden = true;
           handleScanned(res.data);
