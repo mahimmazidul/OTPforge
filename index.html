@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>OTPforge — Modern 2FA Authenticator</title>
+<meta name="description" content="OTPforge — a modern, private, Google Authenticator-style TOTP authenticator. Codes are generated locally in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f8cff'/%3E%3Ccircle cx='32' cy='30' r='12' fill='none' stroke='white' stroke-width='5'/%3E%3Crect x='29' y='40' width='6' height='14' rx='3' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<!-- ============ Header ============ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="26" height="26"><circle cx="32" cy="28" r="12" fill="none" stroke="currentColor" stroke-width="6"/><rect x="29" y="38" width="6" height="16" rx="3" fill="currentColor"/></svg>
+    </span>
+    <h1>OTPforge</h1>
+    <span class="badge" id="countBadge" hidden>0</span>
+  </div>
+
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.49 4.49 0 0 1 9.5 14z"/></svg>
+    <input id="searchInput" type="search" placeholder="Search accounts…  ( / )" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="topbar-actions">
+    <button class="btn btn-accent" id="addBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+      <span>Add</span>
+    </button>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme"></button>
+    <button class="icon-btn" id="menuBtn" title="Menu" aria-label="Menu">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 8a2 2 0 1 0-2-2 2 2 0 0 0 2 2zm0 2a2 2 0 1 0 2 2 2 2 0 0 0-2-2zm0 6a2 2 0 1 0 2 2 2 2 0 0 0-2-2z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============ Account list ============ -->
+<main>
+  <div id="accountList" class="list" aria-live="polite"></div>
+
+  <!-- Empty state -->
+  <div id="emptyState" class="empty" hidden>
+    <div class="empty-art" aria-hidden="true">
+      <svg viewBox="0 0 120 120" width="110" height="110">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="3" opacity=".25"/>
+        <circle cx="60" cy="52" r="20" fill="none" stroke="currentColor" stroke-width="6"/>
+        <rect x="56" y="68" width="8" height="26" rx="4" fill="currentColor"/>
+        <circle cx="60" cy="52" r="5" fill="currentColor"/>
+      </svg>
+    </div>
+    <h2>No accounts yet</h2>
+    <p>Add your first 2FA account — scan a QR code, paste an <code>otpauth://</code> link,<br>or enter the secret key manually. Works with Google, GitHub, Facebook, Discord &amp; more.</p>
+    <div class="empty-actions">
+      <button class="btn btn-accent" id="emptyAddBtn">+ Add account</button>
+      <button class="btn btn-ghost" id="demoBtn">Try a demo account</button>
+    </div>
+  </div>
+
+  <p class="privacy-note">Codes are generated locally in your browser — secrets never leave this device.</p>
+</main>
+
+<!-- ============ Add / Edit account modal ============ -->
+<div class="overlay" id="accountModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="amTitle">
+    <div class="modal-head">
+      <h2 id="amTitle">Add account</h2>
+      <button class="icon-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M18.3 5.71 12 12.01l-6.3-6.3-1.41 1.41 6.3 6.3-6.3 6.3 1.41 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z"/></svg>
+      </button>
+    </div>
+
+    <div class="tabs" id="amTabs">
+      <button class="tab active" data-tab="scan">Scan QR</button>
+      <button class="tab" data-tab="paste">Paste link</button>
+      <button class="tab" data-tab="manual">Manual entry</button>
+    </div>
+
+    <!-- Scan tab -->
+    <div class="tabpane" data-pane="scan">
+      <div class="scan-box">
+        <video id="scanVideo" playsinline muted></video>
+        <canvas id="scanCanvas" hidden></canvas>
+        <div class="scan-placeholder" id="scanPlaceholder">
+          <svg viewBox="0 0 24 24" width="42" height="42"><path fill="currentColor" d="M4 4h6v6H4zM6 6v2h2V6zm8-2h6v6h-6zm2 2v2h2V6zM4 14h6v6H4zm2 2v2h2v-2zm12-2h2v2h-2zm-4 0h2v2h-2zm0 4h2v2h-2zm4 0h2v2h-2zm-8 2h2v2H8z"/></svg>
+          <p>Point your camera at a QR code,<br>or start the camera below.</p>
+        </div>
+        <div class="scan-frame" id="scanFrame" hidden></div>
+      </div>
+      <div class="scan-controls">
+        <button class="btn btn-accent" id="startCamBtn">Start camera</button>
+        <button class="btn btn-ghost" id="uploadQrBtn">Upload QR image</button>
+        <input type="file" id="qrFileInput" accept="image/*" hidden>
+      </div>
+      <p class="hint" id="scanHint">Also works with Google Authenticator migration QRs (otpauth:// links).</p>
+    </div>
+
+    <!-- Paste tab -->
+    <div class="tabpane" data-pane="paste" hidden>
+      <label class="field-label" for="pasteUri">otpauth:// URI</label>
+      <textarea id="pasteUri" rows="4" placeholder="otpauth://totp/Google:alice@gmail.com?secret=JBSWY3DP…&issuer=Google" spellcheck="false"></textarea>
+      <div class="row-end">
+        <button class="btn btn-accent" id="parseUriBtn">Parse &amp; preview</button>
+      </div>
+      <p class="hint error-hint" id="pasteError" hidden></p>
+    </div>
+
+    <!-- Manual tab -->
+    <div class="tabpane" data-pane="manual" hidden>
+      <div class="form-grid">
+        <div class="field">
+          <label class="field-label" for="fIssuer">Issuer <span class="opt">(e.g. Google)</span></label>
+          <input id="fIssuer" type="text" placeholder="Google" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="field-label" for="fAccount">Account <span class="opt">(e.g. alice@gmail.com)</span></label>
+          <input id="fAccount" type="text" placeholder="alice@gmail.com" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="field-label" for="fSecret">Secret key <span class="opt">(Base32)</span></label>
+          <div class="secret-row">
+            <input id="fSecret" type="text" placeholder="JBSWY3DPEHPK3PXP" autocomplete="off" spellcheck="false" class="mono">
+            <button class="icon-btn" id="secretEye" title="Show / hide" type="button" aria-label="Show or hide secret"></button>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>Advanced options</summary>
+          <div class="adv-grid">
+            <div class="field">
+              <label class="field-label" for="fType">Type</label>
+              <select id="fType">
+                <option value="totp" selected>Time-based (TOTP)</option>
+                <option value="hotp">Counter-based (HOTP)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="fAlgo">Algorithm</label>
+              <select id="fAlgo">
+                <option value="SHA-1" selected>SHA-1</option>
+                <option value="SHA-256">SHA-256</option>
+                <option value="SHA-512">SHA-512</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="fDigits">Digits</label>
+              <select id="fDigits">
+                <option value="6" selected>6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+              </select>
+            </div>
+            <div class="field" id="periodField">
+              <label class="field-label" for="fPeriod">Period</label>
+              <select id="fPeriod">
+                <option value="30" selected>30 s</option>
+                <option value="60">60 s</option>
+                <option value="15">15 s</option>
+              </select>
+            </div>
+            <div class="field" id="counterField" hidden>
+              <label class="field-label" for="fCounter">Initial counter</label>
+              <input id="fCounter" type="number" value="0" min="0">
+            </div>
+            <label class="checkbox-row">
+              <input type="checkbox" id="fSteam"> Steam Guard code (5-char)
+            </label>
+          </div>
+        </details>
+
+        <div class="live-preview">
+          <span class="lp-label">Live preview</span>
+          <span class="lp-code mono" id="fPreview">—— —— ——</span>
+        </div>
+        <p class="hint error-hint" id="formError" hidden></p>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close>Cancel</button>
+      <button class="btn btn-accent" id="amSave">Save account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ QR view modal ============ -->
+<div class="overlay" id="qrModal" hidden>
+  <div class="modal modal-sm" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2 id="qrTitle">Account QR</h2>
+      <button class="icon-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M18.3 5.71 12 12.01l-6.3-6.3-1.41 1.41 6.3 6.3-6.3 6.3 1.41 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z"/></svg>
+      </button>
+    </div>
+    <div class="qr-body">
+      <div class="qr-img-wrap"><img id="qrImg" alt="Account QR code"></div>
+      <p class="hint">Scan this with another authenticator app to move this account.</p>
+      <div class="uri-row">
+        <code id="qrUri" class="mono"></code>
+        <button class="btn btn-ghost btn-sm" id="copyUriBtn">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Confirm delete modal ============ -->
+<div class="overlay" id="confirmModal" hidden>
+  <div class="modal modal-sm" role="dialog" aria-modal="true">
+    <div class="modal-head"><h2>Delete account?</h2></div>
+    <p class="confirm-text" id="confirmText"></p>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close>Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ About modal ============ -->
+<div class="overlay" id="aboutModal" hidden>
+  <div class="modal modal-sm" role="dialog" aria-modal="true">
+    <div class="modal-head"><h2>About OTPforge</h2>
+      <button class="icon-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M18.3 5.71 12 12.01l-6.3-6.3-1.41 1.41 6.3 6.3-6.3 6.3 1.41 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z"/></svg>
+      </button>
+    </div>
+    <div class="about-body">
+      <p><strong>OTPforge v2.0</strong> — a modern, private two-factor authenticator.</p>
+      <ul>
+        <li>TOTP &amp; HOTP · SHA-1 / SHA-256 / SHA-512 · 6–8 digits · Steam Guard</li>
+        <li>QR scan, <code>otpauth://</code> import &amp; manual entry</li>
+        <li>Everything is stored locally in your browser — no account, no cloud.</li>
+        <li>Compatible with Google Authenticator, Authy, Aegis &amp; any RFC-6238 service.</li>
+      </ul>
+      <p class="hint">Tip: use <em>Menu → Export backup</em> regularly to keep your accounts safe.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Popover menu -->
+<div class="popover" id="popover" hidden></div>
+
+<!-- Toasts -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<input type="file" id="importFileInput" accept=".json,.txt,application/json,text/plain" hidden>
+
+<script src="static/vendor/jsQR.js"></script>
+<script src="static/vendor/qrcode.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>

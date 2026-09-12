@@ -1,52 +1,74 @@
-# OTPForge
+# OTPforge
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A modern, private 2FA authenticator — like Google Authenticator / totp.app — plus a legacy OTP API.
 
-OTPForge is a secure, time- and counter-based One-Time Password (OTP) API.  
-It supports TOTP (time-based) and HOTP (counter-based) OTP generation, ideal for authentication systems, apps, or testing purposes.
+OTPforge is a full TOTP authenticator web app: scan the QR code a service shows you when you enable 2FA, and OTPforge generates the rotating 6-digit codes right in your browser. All codes are computed locally with Web Crypto — your secrets never leave your device.
 
+## Authenticator features
 
-## Features
-* Generate TOTP (time-based) OTPs
-* Generate HOTP (counter-based) OTPs
-* CORS enabled for web usage
-* Rate-limited: 60 requests per minute per IP
+- **Google Authenticator compatible** — works with Google, GitHub, Facebook, Discord, AWS, Binance, WordPress… anything that shows a standard `otpauth://` QR
+- **Add accounts 3 ways** — camera QR scan, QR image upload, paste an `otpauth://` link, or manual secret entry
+- **Import from Google Authenticator** — scan/paste the `otpauth-migration://` QR from *Google Authenticator → Transfer accounts* and all codes come across
+- **TOTP and HOTP** — time-based and counter-based codes
+- **Full RFC 6238 support** — SHA-1 / SHA-256 / SHA-512, 6–8 digits, 15/30/60 s periods
+- **Steam Guard** 5-character codes
+- Search, drag-to-reorder, dark/light theme
+- **Export / import JSON backups** — move between devices easily
+- **Show any account as a QR** to migrate to another authenticator
+- Verified against the official RFC 4226 / RFC 6238 test vectors (`node test/crypto.test.mjs`)
+- No account, no cloud, no tracking — secrets live only in your browser's localStorage
 
-## Installation
+## Run it on GitHub Pages (no server needed)
 
-Make sure you have Python 3.9+ installed. Then:
+The authenticator is 100% client-side (all crypto runs in the browser), so it works perfectly on GitHub Pages. The legacy `/get-otp` API is the only part that needs a server — on Pages you simply get the authenticator.
 
-```
+Option A — automatic deploy (recommended), already wired up:
+
+1. Push this repo to GitHub.
+2. In the repo: **Settings → Pages → Source → GitHub Actions**.
+3. Done. Every push to `main` deploys the site via `.github/workflows/deploy-pages.yml`, live at `https://<username>.github.io/OTPforge/`.
+
+Option B — deploy from branch (no Actions):
+
+1. **Settings → Pages → Source → Deploy from a branch** → branch `main`, folder `/ (root)`.
+2. Visit `https://<username>.github.io/OTPforge/`.
+
+Notes:
+
+- Asset paths are relative, so it works both on Pages and self-hosted.
+- GitHub Pages is HTTPS, which browsers require for camera QR scanning and Web Crypto — both work out of the box.
+
+## Self-hosted (local / VPS)
+
+Requires Python 3.9+. This mode also enables the legacy JSON API.
+
+```bash
 git clone https://github.com/mahimmazidul/OTPforge.git
-cd otpforge 
+cd OTPforge
 pip install -r requirements.txt
-```
-
-
-## Running the App
-
-```
 python main.py
 ```
 
-By default, the app runs on:
+Then open http://127.0.0.1:5005/ and add your first account (or click *Try a demo account*).
 
-`
-http://127.0.0.1:5005/get-otp
-`
+To use camera QR scanning from a phone, serve over HTTPS (e.g. behind any HTTPS reverse proxy) — browsers only allow camera access on secure origins.
 
+## Using it as a 2FA app
 
+1. Turn on 2FA on the service (e.g. GitHub → *Settings → Password and authentication*).
+2. Choose *"setup using an authenticator app"* — a QR code appears.
+3. In OTPforge click **Add → Scan QR** (or upload a screenshot of the QR).
+4. Type the 6-digit code back into the service to confirm. Done — codes rotate every 30 s.
 
-## API Documentation
+To migrate **from** Google Authenticator: *Google Authenticator → ⋮ → Transfer accounts → Export accounts* → scan the QR with OTPforge.
 
-Endpoint: POST `/get-otp`  
-Content-Type: `application/json`  
+## Legacy JSON API (self-hosted only)
 
-### Request Format
+Rate-limited: 60 requests/minute/IP. Not available on GitHub Pages.
 
-Send a JSON payload like this:
+**Endpoint:** `POST /get-otp` · Content-Type: `application/json`
 
-```
+```json
 {
   "key": "JBSWY3DPEHPK3PXP",
   "type": "time",
@@ -55,68 +77,54 @@ Send a JSON payload like this:
 }
 ```
 
-- `key`: Optional; if omitted, a new key is generated.  
-- `type`: Required; "time" for TOTP, "counter" for HOTP.  
-- `username`: Optional; used to track counters for HOTP.  
-- `counter`: Optional; used for testing HOTP.
+- `key`: optional — a new key is generated if omitted
+- `type`: required — `"time"` (TOTP) or `"counter"` (HOTP)
+- `username`: optional — tracks HOTP counters
+- `counter`: optional — explicit HOTP counter
 
+**TOTP response**
 
-
-### Responses
-
-TOTP (Time-Based)
-
-```
-{
-  "status": "ok",
-  "type": "time",
-  "username": "alice",
-  "key": "JBSWY3DPEHPK3PXP",
-  "otp": "492039",
-  "remaining_seconds": 18
-}
+```json
+{ "status": "ok", "type": "time", "username": "alice",
+  "key": "JBSWY3DPEHPK3PXP", "otp": "492039", "remaining_seconds": 18 }
 ```
 
-- `remaining_seconds`: seconds until the OTP expires.
+**HOTP response**
 
-#### HOTP (Counter-Based)
-
-```
-{
-  "status": "ok",
-  "type": "counter",
-  "username": "bob",
-  "key": "JBSWY3DPEHPK3PXP",
-  "otp": "583927",
-  "counter_used": 0,
-  "next_counter": 1
-}
+```json
+{ "status": "ok", "type": "counter", "username": "bob",
+  "key": "JBSWY3DPEHPK3PXP", "otp": "583927",
+  "counter_used": 0, "next_counter": 1 }
 ```
 
-- `counter_used`: counter used to generate OTP.  
-- `next_counter`: next valid counter.
-
-
-## Example Python Usage
+## Project layout
 
 ```
-import requests
-
-url = "https://mahim.dev/get-otp"
-payload = {
-    "key": "JBSWY3DPEHPK3PXP",
-    "type": "time",
-    "username": "alice"
-}
-
-response = requests.post(url, json=payload)
-print(response.json())
+OTPforge/
+├── index.html            # authenticator UI (repo root so GitHub Pages serves it)
+├── static/
+│   ├── style.css
+│   ├── app.js            # TOTP/HOTP engine (Web Crypto) + UI logic
+│   └── vendor/           # jsQR (QR decoding), qrcode-generator (QR encoding)
+├── main.py               # optional Flask server: serves the app + legacy /get-otp API
+├── requirements.txt
+├── .github/workflows/
+│   └── deploy-pages.yml  # GitHub Pages deployment
+└── test/
+    └── crypto.test.mjs   # RFC 4226/6238 test-vector suite (node)
 ```
 
+## Roadmap ideas
+
+- PWA install + offline caching
+- Optional password-gated encrypted storage
+- Push-style login approval
 
 ## Author
 
-Mazidul Islam Mahim  
-Email: meow@mahim.dev  
-GitHub: https://github.com/mahimmazidul
+**Mazidul Islam Mahim**
+Email: [meow@mahim.dev](mailto:meow@mahim.dev) · GitHub: [mahimmazidul](https://github.com/mahimmazidul)
 
+## License
+
+MIT — see [LICENSE](LICENSE).

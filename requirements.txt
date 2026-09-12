@@ -1,3 +1,3 @@
-Flask
-pyotp
-flask-cors
+Flask>=3.0
+flask-cors>=4.0
+pyotp>=2.9
