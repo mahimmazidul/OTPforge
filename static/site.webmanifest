@@ -1,7 +1,7 @@
 {
   "name": "OTPforge — 2FA Authenticator",
   "short_name": "OTPforge",
-  "description": "Free, private two-factor authentication in your browser. TOTP & HOTP codes, QR scanning, Google Authenticator import.",
+  "description": "Free, private two-factor authentication in your browser. TOTP & HOTP codes, QR scanning, import from other authenticator apps.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

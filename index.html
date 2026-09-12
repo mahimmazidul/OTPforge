@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>OTPforge — Free Online 2FA Authenticator (TOTP &amp; HOTP)</title>
-<meta name="description" content="OTPforge is a free, private two-factor authentication app that runs entirely in your browser. Generate TOTP and HOTP codes, scan QR codes, import from Google Authenticator, and export backups. No account, no cloud.">
-<meta name="keywords" content="2fa authenticator, totp, hotp, two-factor authentication, google authenticator alternative, authenticator app online, otp generator, rfc 6238, qr code 2fa">
+<meta name="description" content="OTPforge is a free, private two-factor authentication app that runs entirely in your browser. Generate TOTP and HOTP codes, scan QR codes, import from your current authenticator app, and export backups. No account, no cloud.">
+<meta name="keywords" content="2fa authenticator, totp, hotp, two-factor authentication, authenticator app alternative, authenticator app online, otp generator, rfc 6238, qr code 2fa">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="Mazidul Islam Mahim">
 <link rel="canonical" href="https://mahimmazidul.github.io/OTPforge/">
@@ -19,25 +19,19 @@
 <link rel="icon" type="image/svg+xml" href="static/icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="static/icon-192.png">
 <link rel="apple-touch-icon" href="static/apple-touch-icon.png">
-
-<!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OTPforge">
 <meta property="og:title" content="OTPforge — Free Online 2FA Authenticator">
-<meta property="og:description" content="Generate TOTP and HOTP codes entirely in your browser. Scan QR codes, import from Google Authenticator, export backups. No account, no cloud.">
+<meta property="og:description" content="Generate TOTP and HOTP codes entirely in your browser. Scan QR codes, import from your current authenticator, export backups. No account, no cloud.">
 <meta property="og:url" content="https://mahimmazidul.github.io/OTPforge/">
 <meta property="og:image" content="https://mahimmazidul.github.io/OTPforge/static/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="OTPforge — the free, private 2FA authenticator that runs entirely in your browser">
-
-<!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="OTPforge — Free Online 2FA Authenticator">
-<meta name="twitter:description" content="TOTP and HOTP codes, QR scanning and Google Authenticator import — entirely in your browser. No account, no cloud.">
+<meta name="twitter:description" content="TOTP and HOTP codes, QR scanning and migration import — entirely in your browser. No account, no cloud.">
 <meta name="twitter:image" content="https://mahimmazidul.github.io/OTPforge/static/og-image.png">
-
-<!-- Structured data -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -55,7 +49,7 @@
     "HOTP counter-based codes (RFC 4226)",
     "SHA-1, SHA-256 and SHA-512 algorithms",
     "QR code scanning and otpauth:// import",
-    "Import from Google Authenticator",
+    "Import from other authenticator apps (migration QR)",
     "Steam Guard codes",
     "Encrypted-free local storage, JSON backup export"
   ],
@@ -71,7 +65,7 @@
     {
       "@type": "Question",
       "name": "What is OTPforge?",
-      "acceptedAnswer": { "@type": "Answer", "text": "OTPforge is a free two-factor authentication (2FA) authenticator web app. It generates the same time-based codes (TOTP) as Google Authenticator, entirely in your browser." }
+      "acceptedAnswer": { "@type": "Answer", "text": "OTPforge is a free two-factor authentication (2FA) authenticator web app. It generates standard time-based one-time passwords (TOTP, RFC 6238), entirely in your browser." }
     },
     {
       "@type": "Question",
@@ -85,8 +79,8 @@
     },
     {
       "@type": "Question",
-      "name": "Can I import accounts from Google Authenticator?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Use Google Authenticator's Transfer accounts export, then scan or paste the migration QR into OTPforge and every account is imported." }
+      "name": "Can I import accounts from another authenticator app?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Use your current authenticator's transfer or export feature, then scan or paste the migration QR into OTPforge and every account is imported." }
     }
   ]
 }
@@ -98,8 +92,6 @@
 <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-
-<!-- ============ Header ============ -->
 <header class="topbar">
   <div class="brand">
     <span class="logo" aria-hidden="true">
@@ -127,16 +119,12 @@
     </button>
   </div>
 </header>
-
-<!-- ============ Account list ============ -->
 <main>
   <div class="list-head" id="listHead" hidden>
     <span>Accounts / <b id="countNum">00</b></span>
     <span class="clock mono" id="utcClock">--:--:-- UTC</span>
   </div>
   <div id="accountList" class="list" aria-live="polite"></div>
-
-  <!-- Empty state -->
   <div id="emptyState" class="empty" hidden>
     <div class="empty-art" aria-hidden="true">
       <svg viewBox="0 0 120 120" width="104" height="104" fill="none" stroke="currentColor">
@@ -158,8 +146,6 @@
 
   <p class="privacy-note">All codes computed locally — secrets never leave this device</p>
 </main>
-
-<!-- ============ Add / Edit account modal ============ -->
 <div class="overlay" id="accountModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="amTitle">
     <div class="modal-head">
@@ -174,8 +160,6 @@
       <button class="tab" data-tab="paste">Paste link</button>
       <button class="tab" data-tab="manual">Manual entry</button>
     </div>
-
-    <!-- Scan tab -->
     <div class="tabpane" data-pane="scan">
       <div class="scan-box">
         <video id="scanVideo" playsinline muted></video>
@@ -191,10 +175,8 @@
         <button class="btn btn-ghost" id="uploadQrBtn">Upload QR image</button>
         <input type="file" id="qrFileInput" accept="image/*" hidden>
       </div>
-      <p class="hint" id="scanHint">Also works with Google Authenticator migration QRs (otpauth:// links).</p>
+      <p class="hint" id="scanHint">Also reads migration QR codes exported by other authenticator apps.</p>
     </div>
-
-    <!-- Paste tab -->
     <div class="tabpane" data-pane="paste" hidden>
       <label class="field-label" for="pasteUri">otpauth:// URI</label>
       <textarea id="pasteUri" rows="4" placeholder="otpauth://totp/Google:alice@gmail.com?secret=JBSWY3DP…&issuer=Google" spellcheck="false"></textarea>
@@ -203,8 +185,6 @@
       </div>
       <p class="hint error-hint" id="pasteError" hidden></p>
     </div>
-
-    <!-- Manual tab -->
     <div class="tabpane" data-pane="manual" hidden>
       <div class="form-grid">
         <div class="field">
@@ -214,6 +194,10 @@
         <div class="field">
           <label class="field-label" for="fAccount">Account <span class="opt">(e.g. alice@gmail.com)</span></label>
           <input id="fAccount" type="text" placeholder="alice@gmail.com" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="field-label" for="fNote">Note <span class="opt">(optional, plain text)</span></label>
+          <input id="fNote" type="text" placeholder="e.g. work login, backup account" autocomplete="off">
         </div>
         <div class="field">
           <label class="field-label" for="fSecret">Secret key <span class="opt">(Base32)</span></label>
@@ -262,7 +246,7 @@
               <input id="fCounter" type="number" value="0" min="0">
             </div>
             <label class="checkbox-row">
-              <input type="checkbox" id="fSteam"> Steam Guard code (5-char)
+              <input type="checkbox" id="fSteam"> Steam-style 5-character code
             </label>
           </div>
         </details>
@@ -281,8 +265,6 @@
     </div>
   </div>
 </div>
-
-<!-- ============ QR view modal ============ -->
 <div class="overlay" id="qrModal" hidden>
   <div class="modal modal-sm" role="dialog" aria-modal="true">
     <div class="modal-head">
@@ -301,8 +283,6 @@
     </div>
   </div>
 </div>
-
-<!-- ============ Confirm delete modal ============ -->
 <div class="overlay" id="confirmModal" hidden>
   <div class="modal modal-sm" role="dialog" aria-modal="true">
     <div class="modal-head"><h2>Delete account?</h2></div>
@@ -313,8 +293,6 @@
     </div>
   </div>
 </div>
-
-<!-- ============ About modal ============ -->
 <div class="overlay" id="aboutModal" hidden>
   <div class="modal modal-sm" role="dialog" aria-modal="true">
     <div class="modal-head"><h2>About OTPforge</h2>
@@ -328,24 +306,20 @@
         <li>TOTP &amp; HOTP · SHA-1 / SHA-256 / SHA-512 · 6–8 digits · Steam Guard</li>
         <li>QR scan, <code>otpauth://</code> import &amp; manual entry</li>
         <li>Everything is stored locally in your browser — no account, no cloud.</li>
-        <li>Compatible with Google Authenticator, Authy, Aegis &amp; any RFC-6238 service.</li>
+        <li>Compatible with any RFC 6238 service and standard authenticator apps.</li>
       </ul>
       <div class="faq">
         <h3>Questions &amp; answers</h3>
-        <details><summary>What is OTPforge?</summary><p>OTPforge is a free two-factor authentication (2FA) authenticator web app. It generates the same time-based codes (TOTP) as Google Authenticator, entirely in your browser.</p></details>
+        <details><summary>What is OTPforge?</summary><p>OTPforge is a free two-factor authentication (2FA) authenticator web app. It generates standard time-based one-time passwords (TOTP, RFC 6238), entirely in your browser.</p></details>
         <details><summary>Does OTPforge work offline?</summary><p>Yes. Codes are computed locally on your device with Web Crypto, so OTPforge keeps working without an internet connection.</p></details>
         <details><summary>Where are my secret keys stored?</summary><p>Only in your browser's local storage. They are never uploaded to any server, and you can export a JSON backup at any time.</p></details>
-        <details><summary>Can I import accounts from Google Authenticator?</summary><p>Yes. Use Google Authenticator's <em>Transfer accounts</em> export, then scan or paste the migration QR into OTPforge and every account is imported.</p></details>
+        <details><summary>Can I import accounts from another authenticator app?</summary><p>Yes. Use your current authenticator's transfer/export feature, then scan or paste the migration QR into OTPforge and every account is imported.</p></details>
       </div>
       <p class="hint">Tip: use <em>Menu → Export backup</em> regularly to keep your accounts safe.</p>
     </div>
   </div>
 </div>
-
-<!-- Popover menu -->
 <div class="popover" id="popover" hidden></div>
-
-<!-- Toasts -->
 <div class="toast-wrap" id="toastWrap"></div>
 
 <input type="file" id="importFileInput" accept=".json,.txt,application/json,text/plain" hidden>

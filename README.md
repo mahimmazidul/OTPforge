@@ -1,14 +1,14 @@
 # OTPforge
 
-A modern, private 2FA authenticator — like Google Authenticator / totp.app — plus a legacy OTP API.
+A modern, private 2FA authenticator that runs in your browser or on GitHub Pages — plus a legacy OTP API.
 
 OTPforge is a full TOTP authenticator web app: scan the QR code a service shows you when you enable 2FA, and OTPforge generates the rotating 6-digit codes right in your browser. All codes are computed locally with Web Crypto — your secrets never leave your device.
 
 ## Authenticator features
 
-- **Google Authenticator compatible** — works with Google, GitHub, Facebook, Discord, AWS, Binance, WordPress… anything that shows a standard `otpauth://` QR
+- **Works with any service** that shows a standard `otpauth://` QR when you enable two-factor authentication
 - **Add accounts 3 ways** — camera QR scan, QR image upload, paste an `otpauth://` link, or manual secret entry
-- **Import from Google Authenticator** — scan/paste the `otpauth-migration://` QR from *Google Authenticator → Transfer accounts* and all codes come across
+- **Import from other authenticator apps** — scan/paste the standard `otpauth-migration://` transfer QR and all codes come across
 - **TOTP and HOTP** — time-based and counter-based codes
 - **Full RFC 6238 support** — SHA-1 / SHA-256 / SHA-512, 6–8 digits, 15/30/60 s periods
 - **Steam Guard** 5-character codes
@@ -60,7 +60,7 @@ To use camera QR scanning from a phone, serve over HTTPS (e.g. behind any HTTPS 
 3. In OTPforge click **Add → Scan QR** (or upload a screenshot of the QR).
 4. Type the 6-digit code back into the service to confirm. Done — codes rotate every 30 s.
 
-To migrate **from** Google Authenticator: *Google Authenticator → ⋮ → Transfer accounts → Export accounts* → scan the QR with OTPforge.
+To migrate **from another authenticator**: use its transfer/export feature and scan the resulting QR with OTPforge.
 
 ## Legacy JSON API (self-hosted only)
 
