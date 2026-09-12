@@ -501,6 +501,17 @@ async function copyText(text) {
 const popover = $('#popover');
 function hidePopover() { popover.hidden = true; popover.innerHTML = ''; }
 
+function positionPopoverNear(anchor) {
+  popover.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const pw = popover.offsetWidth, ph = popover.offsetHeight;
+  let x = Math.max(8, Math.min(r.right - pw, window.innerWidth - pw - 8));
+  let y = r.bottom + 6;
+  if (y + ph > window.innerHeight - 8) y = Math.max(8, r.top - ph - 6);
+  popover.style.left = x + 'px';
+  popover.style.top = y + 'px';
+}
+
 function openKebab(anchor, acc) {
   popover.innerHTML = '';
   const items = [
@@ -531,14 +542,7 @@ function openKebab(anchor, acc) {
     popover.appendChild(b);
   }
 
-  popover.hidden = false;
-  const r = anchor.getBoundingClientRect();
-  const pw = popover.offsetWidth, ph = popover.offsetHeight;
-  let x = Math.max(8, Math.min(r.right - pw, window.innerWidth - pw - 8));
-  let y = r.bottom + 6;
-  if (y + ph > window.innerHeight - 8) y = Math.max(8, r.top - ph - 6);
-  popover.style.left = x + 'px';
-  popover.style.top = y + 'px';
+  positionPopoverNear(anchor);
 }
 document.addEventListener('click', (e) => { if (!popover.hidden && !popover.contains(e.target)) hidePopover(); });
 window.addEventListener('scroll', hidePopover, true);
@@ -937,10 +941,7 @@ $('#menuBtn').addEventListener('click', (e) => {
     b.addEventListener('click', () => { hidePopover(); item.action(); });
     popover.appendChild(b);
   }
-  popover.hidden = false;
-  const r = e.currentTarget.getBoundingClientRect();
-  popover.style.left = Math.max(8, r.right - popover.offsetWidth) + 'px';
-  popover.style.top = r.bottom + 6 + 'px';
+  positionPopoverNear(e.currentTarget);
 });
 
 const SUN = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-15h0a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1zM3 11h2a1 1 0 0 1 0 2H3a1 1 0 0 1 0-2zm16 0h2a1 1 0 0 1 0 2h-2a1 1 0 0 1 0-2zM5.64 4.22l1.42 1.42A1 1 0 1 1 5.64 7.06L4.22 5.64A1 1 0 0 1 5.64 4.22zm12.72 12.72 1.42 1.42a1 1 0 1 1-1.42 1.42l-1.42-1.42a1 1 0 0 1 1.42-1.42zM4.22 18.36l1.42-1.42a1 1 0 1 1 1.42 1.42l-1.42 1.42a1 1 0 0 1-1.42-1.42zM16.94 5.64l1.42-1.42a1 1 0 1 1 1.42 1.42l-1.42 1.42a1 1 0 0 1-1.42-1.42z"/></svg>';
